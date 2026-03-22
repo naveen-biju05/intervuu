@@ -95,7 +95,7 @@ const Signup = () => {
           name="name"
           value={form.name}
           onChange={handleChange}
-          placeholder="Manu"
+          placeholder="Name"
           error={errors.name}
           autoComplete="name"
         />
@@ -106,7 +106,7 @@ const Signup = () => {
           name="email"
           value={form.email}
           onChange={handleChange}
-          placeholder="manu@example.com"
+          placeholder="name@example.com"
           error={errors.email}
           autoComplete="email"
         />
