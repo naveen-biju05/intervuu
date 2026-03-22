@@ -49,7 +49,6 @@ passport.use(
   )
 );
 
-// Optional debug
-console.log("CLIENT ID:", process.env.GOOGLE_CLIENT_ID);
+
 
 export default passport;
