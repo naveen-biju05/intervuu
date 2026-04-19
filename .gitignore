@@ -1,4 +1,14 @@
-node_modules
+node_modules/
 .env
-dist
-build
+dist/
+build/
+
+# Ignore all uploads
+backend/uploads/*
+
+# But keep the folder structure
+!backend/uploads/
+!backend/uploads/resumes/
+
+# Ignore everything inside resumes
+backend/uploads/resumes/*
