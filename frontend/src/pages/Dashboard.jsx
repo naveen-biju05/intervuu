@@ -1,84 +1,87 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, clearAuth } from '../utils/auth';
+import { useState } from 'react';
+import useJobs from '../hooks/useJobs';
+import Navbar from '../components/Navbar';
+import CompanyLogo from '../components/CompanyLogo';
+
+const TagBadge = ({ label }) => (
+  <span className="px-3 py-1 rounded-full text-xs font-medium border border-gray-200 text-gray-500 bg-gray-50">
+    {label}
+  </span>
+);
+
+const JobCard = ({ job, onSelect }) => {
+  return (
+    <div className="bg-white rounded-2xl p-6 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-lg transition-all border border-gray-100">
+      <div className="w-14 h-14 mb-4 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-50 overflow-hidden">
+        <CompanyLogo logoUrl={job.logoUrl} companyName={job.company} className="w-10 h-10 object-contain" fallbackClass="w-full h-full text-2xl rounded-full" />
+      </div>
+      <h3 className="font-bold text-gray-900 text-lg leading-tight">{job.title}</h3>
+      <p className="text-gray-400 text-sm mt-1">{job.company}</p>
+      
+      <div className="flex flex-wrap gap-2 mt-6 mb-6">
+        {job.tags.slice(0, 3).map((tag) => (
+          <TagBadge key={tag} label={tag} />
+        ))}
+      </div>
+
+      <button
+        onClick={() => onSelect(job)}
+        className="mt-auto w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-medium transition-all hover:bg-violet-700 bg-[#8338ec]"
+      >
+        View Job Description <span className="text-lg leading-none">&rsaquo;</span>
+      </button>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const user = getUser();
+  const initial = user?.name?.[0]?.toUpperCase() || '?';
+
+  const [loading, setLoading] = useState(false);
+  const { jobs, loading: jobsLoading, error: jobsError } = useJobs();
 
   const handleLogout = () => {
     clearAuth();
     navigate('/login');
   };
 
-  const initial = user?.name?.[0]?.toUpperCase() || '?';
+  // ✅ NEW FUNCTION (main logic)
+  const handleJobSelect = (job) => {
+    setLoading(true);
+    try {
+      localStorage.setItem('selectedJob', JSON.stringify(job));
+      navigate(`/job/${job.id}`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: '#0B1A2B' }}
-    >
-      {/* Navbar */}
-      <nav className="bg-white/5 border-b border-white/10 px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #7B2FF7, #9B4DFF)' }}
-          >
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-          </div>
-          <span className="font-semibold text-white text-base tracking-tight">Intervuu</span>
+    <div className="min-h-screen" style={{ backgroundColor: '#ECEDF1' }}>
+      <Navbar />
+
+      <div className="max-w-6xl mx-auto px-10 py-14">
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold text-gray-900">Interview Practice</h1>
+          <p className="text-gray-400 text-base mt-2">
+            Select a role to start your AI-powered mock interview.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-            style={{ background: 'linear-gradient(135deg, #7B2FF7, #9B4DFF)' }}
-          >
-            {initial}
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-white/60 hover:text-white transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
-      </nav>
+        {(loading || jobsLoading) && <p className="text-purple-600 mb-4">Loading jobs…</p>}
+        {jobsError && <p className="text-red-500 mb-4">Error loading jobs: {jobsError}</p>}
 
-      {/* Content */}
-      <div className="flex-1 flex items-center justify-center px-4">
-        <div className="text-center max-w-lg">
-          <div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl"
-            style={{ background: 'linear-gradient(135deg, #7B2FF7, #9B4DFF)' }}
-          >
-            <span className="text-white text-3xl font-bold">{initial}</span>
-          </div>
-
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome back, {user?.name?.split(' ')[0]}! 🎉
-          </h1>
-          <p className="text-white/50 text-sm mb-8">{user?.email}</p>
-
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-left mb-6">
-            <p className="text-white/70 text-sm leading-relaxed">
-              You're successfully authenticated with <strong className="text-white">Intervuu</strong> — your AI-powered interview coach. Your dashboard is ready. Start practicing interviews, review feedback, and track your progress.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            {['Practice Interview', 'Review Feedback', 'Track Progress'].map((item) => (
-              <div
-                key={item}
-                className="bg-white/5 border border-white/10 rounded-xl p-4 text-center cursor-pointer hover:bg-white/10 transition-all"
-              >
-                <p className="text-white text-xs font-medium">{item}</p>
-              </div>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+          {jobs.map((job) => (
+            <JobCard key={job.id} job={job} onSelect={handleJobSelect} />
+          ))}
         </div>
       </div>
     </div>

@@ -8,34 +8,104 @@
 
 body {
   margin: 0;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Inter', 'DM Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0B1A2B;
+  background-color: #F3F5FB;
 }
 
 @layer components {
   .auth-input {
     @apply w-full bg-gray-100 border border-transparent rounded-lg px-4 py-2.5 text-gray-800 text-sm placeholder-gray-400 outline-none transition-all duration-200;
   }
+
   .auth-input:focus {
     @apply border-purple-500 bg-white ring-2 ring-purple-100;
   }
+
   .btn-purple {
     @apply w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm transition-all duration-200 shadow-lg;
     background: linear-gradient(135deg, #7B2FF7, #9B4DFF);
   }
+
   .btn-purple:hover {
     background: linear-gradient(135deg, #6a1fe0, #8b3df0);
     transform: translateY(-1px);
     box-shadow: 0 8px 25px rgba(123, 47, 247, 0.4);
   }
+
   .btn-purple:active {
     transform: translateY(0);
   }
+
   .btn-purple:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+  }
+}
+
+/* Fullscreen warning modal animation */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.interview-header {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+}
+
+.live-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.camera-feed {
+  width: 180px;
+  height: 120px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.eye-warning {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff3b3b;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 }

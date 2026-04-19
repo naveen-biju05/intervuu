@@ -1,27 +1,29 @@
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import passport from '../config/passport.js';
-import User from '../models/User.js';
-import protect from '../middleware/authMiddleware.js';
+import express from "express";
+import jwt from "jsonwebtoken";
+import passport from "../config/passport.js";
+import User from "../models/User.js";
+import protect from "../middleware/authMiddleware.js";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
+import bcrypt from "bcryptjs";
 const router = express.Router();
 
 // Helper: Generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
 
 // @route   POST /api/auth/signup
-router.post('/signup', async (req, res) => {
+router.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide name, email, and password.',
+        message: "Please provide name, email, and password.",
       });
     }
 
@@ -29,14 +31,14 @@ router.post('/signup', async (req, res) => {
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: 'An account with this email already exists.',
+        message: "An account with this email already exists.",
       });
     }
 
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long.',
+        message: "Password must be at least 6 characters long.",
       });
     }
 
@@ -53,19 +55,20 @@ router.post('/signup', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Account created successfully.',
+      message: "Account created successfully.",
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         createdAt: user.createdAt,
       },
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error("Signup error:", error);
 
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((e) => e.message);
       return res.status(400).json({
         success: false,
@@ -76,35 +79,37 @@ router.post('/signup', async (req, res) => {
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: 'An account with this email already exists.',
+        message: "An account with this email already exists.",
       });
     }
 
     res.status(500).json({
       success: false,
-      message: 'Server error. Please try again.',
+      message: "Server error. Please try again.",
     });
   }
 });
 
 // @route   POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password.',
+        message: "Please provide email and password.",
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase() }).select(
+      "+password",
+    );
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: "Invalid email or password.",
       });
     }
 
@@ -112,39 +117,101 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: "Invalid email or password.",
       });
     }
     const token = generateToken(user._id);
 
     res.status(200).json({
       success: true,
-      message: 'Logged in successfully.',
+      message: "Logged in successfully.",
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         createdAt: user.createdAt,
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error. Please try again.',
+      message: "Server error. Please try again.",
     });
   }
 });
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.body.email });
 
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const resetToken = crypto.randomBytes(20).toString("hex");
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 3600000;
+
+    await user.save();
+
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: "Password Reset",
+      text: `Reset your password: ${resetUrl}`,
+    });
+
+    res.json({ message: "Reset link sent to email" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+router.post("/reset-password/:token", async (req, res) => {
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: req.params.token,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Token invalid or expired" });
+    }
+
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    user.password = hashedPassword;
+
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // @route   GET /api/auth/me
-router.get('/me', protect, async (req, res) => {
+router.get("/me", protect, async (req, res) => {
   res.status(200).json({
     success: true,
     user: {
       id: req.user._id,
       name: req.user.name,
       email: req.user.email,
+      role: req.user.role,
       createdAt: req.user.createdAt,
     },
   });
@@ -152,41 +219,38 @@ router.get('/me', protect, async (req, res) => {
 
 // 🔥 GOOGLE LOGIN
 router.get(
-  '/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
+  "/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
     session: false,
-  })
+  }),
 );
 
 // 🔥 GOOGLE CALLBACK
 router.get(
-  '/google/callback',
-  passport.authenticate('google', {
+  "/google/callback",
+  passport.authenticate("google", {
     session: false,
     failureRedirect: `${process.env.CLIENT_URL}/login`,
   }),
   (req, res) => {
-    const token = jwt.sign(
-      { id: req.user._id },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-      }
-    );
+    const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    });
 
     const user = encodeURIComponent(
       JSON.stringify({
         id: req.user._id,
         name: req.user.name,
         email: req.user.email,
-      })
+        role: req.user.role,
+      }),
     );
 
     res.redirect(
-      `${process.env.CLIENT_URL}/auth/callback?token=${token}&user=${user}`
+      `${process.env.CLIENT_URL}/auth/callback?token=${token}&user=${user}`,
     );
-  }
+  },
 );
 
 export default router;

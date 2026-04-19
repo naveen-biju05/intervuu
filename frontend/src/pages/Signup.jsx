@@ -56,7 +56,7 @@ const Signup = () => {
         email: form.email,
         password: form.password,
       });
-      navigate("/login");
+      navigate("/profile-setup");
     } catch (err) {
       setServerError(
         err.response?.data?.message || "Signup failed. Please try again.",

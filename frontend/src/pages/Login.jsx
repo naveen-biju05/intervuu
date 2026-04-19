@@ -83,17 +83,8 @@ const Login = () => {
         />
 
         <div>
-          <div className="flex justify-between items-center mb-1">
-            <label className="text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <a
-              href="#"
-              className="text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
-            >
-              Forgot password?
-            </a>
-          </div>
+          <label className="text-sm font-medium text-gray-700">Password</label>
+
           <InputField
             type="password"
             name="password"
@@ -103,6 +94,15 @@ const Login = () => {
             error={errors.password}
             autoComplete="current-password"
           />
+
+          <div className="flex justify-end mt-1">
+            <Link
+              to="/forgot-password"
+              className="text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </div>
 
         <label className="flex items-center gap-2 cursor-pointer select-none">
