@@ -146,12 +146,8 @@ npm run dev
 
 
 
-## 👨‍💻 Author
+## 👨‍💻 Authors
 
-*Naveen Biju*
-*Gali Manish Kumar*
+* **Naveen Biju Koottala**
+* **Gali Manish Kumar**
 
-
-## 📄 License
-
-This project is intended for educational and learning purposes.
