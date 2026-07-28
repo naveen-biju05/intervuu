@@ -150,4 +150,5 @@ npm run dev
 
 * **Naveen Biju Koottala**
 * **Gali Manish Kumar**
+* **Alice Mary Vimal**
 
