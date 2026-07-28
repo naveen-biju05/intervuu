@@ -13,7 +13,6 @@ Intervuu is an AI-powered mock interview platform that helps users prepare for t
 * 📈 Analytics dashboard for interview insights
 * 👤 User authentication and secure login
 * 💼 Support for multiple job roles
-* 📂 Resume upload support
 * 🌐 Responsive user interface
 
 
