@@ -153,6 +153,33 @@ const InterviewReview = () => {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 text-center">
+                    <span className="block text-xl font-black text-emerald-700 leading-none">
+                      {Math.round((qa.concept_score || 0) * 100)}%
+                    </span>
+                    <span className="text-[8px] uppercase font-bold text-emerald-600 tracking-widest mt-1 block">Technical</span>
+                  </div>
+                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 text-center">
+                    <span className="block text-xl font-black text-blue-700 leading-none">
+                      {Math.round((qa.semantic_score || 0) * 100)}%
+                    </span>
+                    <span className="text-[8px] uppercase font-bold text-blue-600 tracking-widest mt-1 block">JD Alignment</span>
+                  </div>
+                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 text-center">
+                    <span className="block text-xl font-black text-amber-700 leading-none">
+                      {Math.round((qa.keyword_score || 0) * 100)}%
+                    </span>
+                    <span className="text-[8px] uppercase font-bold text-amber-600 tracking-widest mt-1 block">Communication</span>
+                  </div>
+                  <div className="bg-violet-50 rounded-xl p-4 border border-violet-100 text-center">
+                    <span className="block text-xl font-black text-violet-700 leading-none">
+                      {Math.round((qa.structure_score || 0) * 100)}%
+                    </span>
+                    <span className="text-[8px] uppercase font-bold text-violet-600 tracking-widest mt-1 block">Structure</span>
+                  </div>
+                </div>
+
                 {qa.keywords && qa.keywords.length > 0 && (
                   <div>
                     <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Keywords to Practice</h4>

@@ -318,52 +318,61 @@ const InterviewReport = () => {
         doc.text("Question-by-Question Breakdown", margin, y);
         y += 10;
 
-        session.questions_answers.forEach((qa, idx) => {
-          checkPage(35);
-
-          // Question header
-          doc.setFontSize(9);
+        session.questions_answers.map((qa, idx) => {
+          checkPage(60);
+          doc.setFontSize(10);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(131, 56, 236);
-          doc.text(`Q${(idx + 1).toString().padStart(2, "0")}`, margin, y);
+          doc.text(`Question ${(idx + 1).toString()}`, margin, y);
+          y += 6;
 
+          doc.setFontSize(9);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(30, 32, 41);
-          const qLines = doc.splitTextToSize(qa.question || "", contentWidth - 12);
-          doc.text(qLines, margin + 12, y);
+          const qLines = doc.splitTextToSize(qa.question || "", contentWidth);
+          doc.text(qLines, margin, y);
           y += qLines.length * 5 + 4;
 
-          // User answer
-          checkPage(15);
+          if (qa.score !== undefined && !session.proctoring?.terminated) {
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(131, 56, 236);
+            doc.text(`Score: ${Math.round(qa.score)}/100`, margin, y);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(150, 150, 160);
+            doc.text(` • Tech: ${Math.round((qa.concept_score || 0) * 100)}  • Rel: ${Math.round((qa.semantic_score || 0) * 100)}`, margin + 30, y);
+            y += 6;
+          }
+
           doc.setFontSize(8);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(100, 100, 110);
-          doc.text("Your Answer:", margin + 4, y);
+          doc.text("Feedback:", margin, y);
           y += 4;
-
           doc.setFont("helvetica", "normal");
           doc.setTextColor(60, 60, 70);
-          const aLines = doc.splitTextToSize(qa.userAnswer || "(no answer)", contentWidth - 8);
-          aLines.slice(0, 6).forEach((line) => {
-            checkPage(6);
-            doc.text(line, margin + 4, y);
-            y += 4.5;
-          });
-          if (aLines.length > 6) {
-            doc.text("...", margin + 4, y);
-            y += 4.5;
-          }
+          const feedbackLines = doc.splitTextToSize(qa.feedback || "No specific feedback available.", contentWidth);
+          doc.text(feedbackLines, margin, y);
+          y += feedbackLines.length * 4.5 + 4;
 
-          // Score if available
-          if (qa.score !== undefined && !session.proctoring?.terminated) {
-            checkPage(8);
+          if (qa.matched_keywords?.length || qa.missing_keywords?.length) {
+            doc.setFontSize(7);
             doc.setFont("helvetica", "bold");
-            doc.setTextColor(131, 56, 236);
-            doc.text(`Score: ${Math.round(qa.score)}/100`, margin + 4, y);
-            y += 5;
+            if (qa.matched_keywords?.length) {
+              doc.setTextColor(16, 185, 129);
+              doc.text(`Matched: ${qa.matched_keywords.join(", ")}`, margin, y);
+              y += 4;
+            }
+            if (qa.missing_keywords?.length) {
+              doc.setTextColor(245, 158, 11);
+              doc.text(`Missing: ${qa.missing_keywords.join(", ")}`, margin, y);
+              y += 4;
+            }
           }
-
-          y += 6;
+          y += 4;
+          doc.setDrawColor(245, 245, 247);
+          doc.line(margin, y, pageWidth - margin, y);
+          y += 8;
         });
       }
 
@@ -707,6 +716,90 @@ const InterviewReport = () => {
               </div>
             )}
           </div>
+
+          {/* Question Breakdown UI */}
+          {session.status !== 'pending_evaluation' && !session.proctoring?.terminated && session.questions_answers?.length > 0 && (
+            <div className="mt-12 pt-12 border-t border-gray-100">
+              <div className="flex items-center gap-3 mb-10">
+                <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 shadow-sm border border-violet-100/50">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 tracking-tight">Question Analysis</h3>
+                  <p className="text-xs text-gray-500 font-medium">Deep dive into your interview responses</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {session.questions_answers.map((qa, idx) => (
+                  <div key={idx} className="bg-white border border-gray-100 rounded-[20px] p-8 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+                      <div className="flex-1">
+                        <span className="text-[10px] font-black text-violet-500 uppercase tracking-[0.2em] mb-3 block">Question {idx + 1}</span>
+                        <h4 className="text-slate-800 font-bold leading-relaxed text-lg">{qa.question}</h4>
+                      </div>
+                      <div className="flex flex-col items-end shrink-0">
+                        <div className="text-3xl font-black text-slate-800 tracking-tighter leading-none">
+                          {Math.round(qa.score)}<span className="text-xs text-gray-400 ml-1">/100</span>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <span className="px-2 py-1 bg-gray-50 text-[9px] font-bold text-gray-500 rounded-md uppercase tracking-wider border border-gray-100">
+                            Tech: {Math.round((qa.concept_score || 0) * 100)}%
+                          </span>
+                          <span className="px-2 py-1 bg-gray-50 text-[9px] font-bold text-gray-500 rounded-md uppercase tracking-wider border border-gray-100">
+                            Rel: {Math.round((qa.semantic_score || 0) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8 pt-8 border-t border-gray-50">
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                          <svg className="w-3.5 h-3.5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          Gap Analysis
+                        </p>
+                        <div className="text-sm text-slate-700 leading-relaxed font-medium bg-violet-50/20 p-5 rounded-2xl border border-violet-100/30">
+                          {qa.feedback}
+                        </div>
+                      </div>
+
+                      <div className="space-y-6">
+                        {(qa.matched_keywords?.length > 0 || qa.missing_keywords?.length > 0) ? (
+                          <div className="space-y-5">
+                            {qa.matched_keywords?.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Matched Keywords</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {qa.matched_keywords.map((kw, kidx) => (
+                                    <span key={kidx} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold border border-emerald-100/50">{kw}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {qa.missing_keywords?.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3">Missing Points</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {qa.missing_keywords.map((kw, kidx) => (
+                                    <span key={kidx} className="px-3 py-1.5 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-bold border border-amber-100/50">{kw}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="h-full flex items-center justify-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 p-6">
+                            <p className="text-[11px] text-gray-400 font-medium italic">Keyword analysis not available</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12 bg-gray-50/50 p-6 rounded-2xl border border-gray-100/50 print:hidden">

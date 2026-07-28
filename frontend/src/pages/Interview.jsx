@@ -14,11 +14,22 @@ const Interview = () => {
   const { job, loading: jobLoading, error: jobError } = useJob(jobId);
 
   const [level, setLevel] = useState(null);
+  const [instructionsAccepted, setInstructionsAccepted] = useState(false);
 
   // AI generates fresh questions every session
   const { questions, sessionToken, loading: questionsLoading, error: questionsError } = useInterviewQuestions(jobId, level);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  // Clear answer state on question change to prevent leak
+  useEffect(() => {
+    setAnswerText("");
+    setLiveTranscript("");
+    finalTranscriptRef.current = "";
+    setSpeechError("");
+    setHasRecorded(false);
+  }, [currentQuestionIndex]);
+
   const [recording, setRecording] = useState(false);
   const [answers, setAnswers] = useState({});
   const [allAnswers, setAllAnswers] = useState([]);
@@ -891,36 +902,36 @@ const Interview = () => {
   // ── Level Selection Screen ──
   if (!level) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 font-sans p-6">
-        <div className="w-full max-w-4xl bg-white rounded-[32px] shadow-sm border border-gray-100 p-10 md:p-14 text-center animate-[scaleIn_0.3s_ease-out]">
-          <div className="w-20 h-20 mx-auto mb-8 rounded-full bg-violet-50 flex items-center justify-center text-violet-600 shadow-inner">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD] font-sans p-6">
+        <div className="w-full max-w-4xl bg-white rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-gray-100 p-10 md:p-16 text-center animate-[scaleIn_0.4s_ease-out]">
+          <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600 shadow-sm border border-violet-100/50">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <h1 className="text-4xl font-black text-slate-800 mb-4 tracking-tight font-[Georgia]">Select Interview Difficulty</h1>
-          <p className="text-gray-500 mb-12 text-sm max-w-lg mx-auto leading-relaxed">Choose the difficulty level for your mock interview. The AI will tailor the technical depth, scenario complexity, and expectations strictly to your selected tier.</p>
+          <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Choose your challenge</h1>
+          <p className="text-gray-500 mb-12 text-sm max-w-lg mx-auto leading-relaxed">Select the difficulty level for your interview. The AI will adjust the technical depth and scenario complexity based on your choice.</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             {[
-              { id: 'Beginner', label: 'Beginner', desc: 'Focuses on core concepts, foundational principles, and basic scenario handling.' },
-              { id: 'Intermediate', label: 'Intermediate', desc: 'Standard difficulty with practical problem-solving and architectural tradeoffs.' },
-              { id: 'Expert', label: 'Expert', desc: 'Complex systems, extreme edge cases, leadership, and deep architectural issues.' }
+              { id: 'Beginner', label: 'Beginner', desc: 'Core concepts, foundations, and basic problem-solving.' },
+              { id: 'Intermediate', label: 'Intermediate', desc: 'Practical applications, trade-offs, and standard scenarios.' },
+              { id: 'Expert', label: 'Expert', desc: 'Complex systems, edge cases, and deep architectural depth.' }
             ].map(tier => (
               <button
                 key={tier.id}
                 onClick={() => setLevel(tier.id)}
-                className="group relative flex flex-col p-8 rounded-[24px] border border-gray-200 hover:border-[#8338ec] hover:shadow-xl hover:shadow-violet-100/50 transition-all duration-300 text-left bg-white overflow-hidden"
+                className="group relative flex flex-col p-8 rounded-[32px] border border-gray-100 hover:border-violet-200 hover:shadow-2xl hover:shadow-violet-100/50 transition-all duration-300 text-left bg-white overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-50/0 to-violet-50/0 group-hover:from-violet-50/50 group-hover:to-transparent transition-all duration-300"></div>
-                <span className="font-black text-xl text-slate-800 mb-3 group-hover:text-[#8338ec] relative z-10 transition-colors">{tier.label}</span>
-                <span className="text-sm text-gray-500 leading-relaxed relative z-10 group-hover:text-gray-600 transition-colors">{tier.desc}</span>
+                <span className="font-black text-xl text-slate-800 mb-3 group-hover:text-violet-600 relative z-10 transition-colors">{tier.label}</span>
+                <span className="text-xs text-gray-500 leading-relaxed relative z-10 group-hover:text-gray-600 transition-colors">{tier.desc}</span>
               </button>
             ))}
           </div>
           <button
             onClick={() => { stopCamera(); navigate(`/job/${job?.id || jobId}`); }}
-            className="text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest"
+            className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-[0.2em]"
           >
             Cancel & Go Back
           </button>
@@ -929,8 +940,142 @@ const Interview = () => {
     );
   }
 
+  // ── Instructions Screen ──
+  if (level && !instructionsAccepted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD] font-sans p-6">
+        <div className="w-full max-w-4xl bg-white rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-gray-100 p-10 md:p-16 text-center animate-[scaleIn_0.4s_ease-out]">
+          <div className="flex flex-col items-center mb-12">
+            <div className="w-16 h-16 mb-6 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600 shadow-sm border border-violet-100/50">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Interview Guidelines</h1>
+            <p className="text-gray-500 text-sm max-w-md mx-auto">Review the session details and rules below to ensure your interview is recorded and evaluated correctly.</p>
+          </div>
+          
+          {/* Interview Details Bar */}
+          <div className="flex flex-col items-center gap-4 mb-12">
+            {/* First Line: Role */}
+            <div className="px-10 py-5 bg-white rounded-3xl border border-gray-100 shadow-[0_10px_30px_rgba(0,0,0,0.02)] flex flex-col items-center min-w-[320px]">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Selected Role</span>
+              <span className="text-lg font-black text-slate-800 uppercase tracking-tight">{job?.title || "Candidate"}</span>
+            </div>
+            
+            {/* Second Line: Questions & Difficulty */}
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="px-8 py-4 bg-white rounded-[20px] border border-gray-100 shadow-sm flex flex-col items-center min-w-[160px]">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Questions</span>
+                <span className="text-sm font-black text-slate-800 uppercase">10 Questions</span>
+              </div>
+              <div className="px-8 py-4 bg-white rounded-[20px] border border-gray-100 shadow-sm flex flex-col items-center min-w-[160px]">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Difficulty</span>
+                <span className="text-sm font-black text-violet-600 uppercase">{level} Level</span>
+              </div>
+            </div>
+
+            {/* Flexible Input Section */}
+            <div className="mt-6 pt-6 border-t border-gray-50 w-full max-w-md mx-auto">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-6">Preferred Response Mode</p>
+              <div className="flex items-center justify-center gap-10">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600 border border-violet-100/50 shadow-sm">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8h-2a5 5 0 01-10 0H3a7.001 7.001 0 006 6.93V17H6v2h8v-2h-3v-2.07z" /></svg>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Voice Input</span>
+                </div>
+
+                <div className="h-8 w-px bg-gray-100"></div>
+
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider">Typing Mode</span>
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-6 font-medium">You can respond using <span className="text-slate-900 font-bold">either</span> mode and switch freely during the session.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-14 text-left">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs">Strict Proctoring Rules</h3>
+              </div>
+              <div className="space-y-5">
+                <div className="flex gap-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-bold text-slate-800 mb-0.5">No Tab Switching</p>
+                    <p className="text-gray-500 leading-relaxed">Switching tabs more than twice will end your session immediately.</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-bold text-slate-800 mb-0.5">Fullscreen Mode</p>
+                    <p className="text-gray-500 leading-relaxed">You must stay in fullscreen. Multiple exits will result in termination.</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-bold text-slate-800 mb-0.5">Integrity Monitoring</p>
+                    <p className="text-gray-500 leading-relaxed">System monitors for multiple faces, external devices, and suspicious movements.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs">Setup Checklist</h3>
+              </div>
+              <div className="space-y-4">
+                {[
+                  "Environment must be well-lit and face clearly visible",
+                  "Quiet space without background noise or voices",
+                  "Stable position with minimal distractions",
+                  "Ensure camera and microphone are functional"
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-4 px-4 py-3 bg-gray-50/50 rounded-2xl border border-gray-100/50">
+                    <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                    <span className="text-sm text-gray-600 font-medium">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-10 border-t border-gray-50">
+            <button
+              onClick={() => setInstructionsAccepted(true)}
+              className="px-14 py-5 bg-[#1e2029] text-white font-black rounded-[22px] shadow-2xl shadow-gray-200 hover:bg-black transition-all hover:scale-[1.02] active:scale-[0.98] text-sm tracking-wide"
+            >
+              Start My Interview
+            </button>
+            <button
+              onClick={() => setLevel(null)}
+              className="px-10 py-5 text-gray-400 font-bold hover:text-gray-700 transition-colors text-sm"
+            >
+              Change Difficulty
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── AI generating / permission check screen (NOT fullscreen) ──
-  if (questionsLoading || (!cameraPermissionGranted && !cameraPermissionError) || !cocoLoaded) {
+  if ((questionsLoading && instructionsAccepted) || (!cameraPermissionGranted && !cameraPermissionError && instructionsAccepted) || (!cocoLoaded && instructionsAccepted)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white font-sans gap-6">
         <div className="w-16 h-16 rounded-full border-4 border-violet-100 border-t-violet-600 animate-spin shadow-lg" />
@@ -1268,8 +1413,8 @@ const Interview = () => {
         const cappedEvents = (proctoringEvents.current || []).slice(-20);
 
         // Slim payload — only questionIndex + userAnswer, no modelAnswer/keywords
-        const slimAnswers = newAllAnswers.map((a, idx) => ({
-          questionIndex: idx,
+        const slimAnswers = newAllAnswers.map((a) => ({
+          questionIndex: a.questionIndex,
           userAnswer: (a.userAnswer || '').substring(0, 2000),
         }));
 
@@ -1308,8 +1453,25 @@ const Interview = () => {
     }
   };
 
+  const preventAction = (e) => {
+    e.preventDefault();
+    return false;
+  };
+
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row font-sans">
+    <div 
+      className="min-h-screen bg-white flex flex-col md:flex-row font-sans"
+      style={{ 
+        userSelect: 'none', 
+        WebkitUserSelect: 'none', 
+        MozUserSelect: 'none', 
+        msUserSelect: 'none' 
+      }}
+      onCopy={preventAction}
+      onCut={preventAction}
+      onContextMenu={preventAction}
+      onSelectStart={preventAction}
+    >
       <div className="w-full md:w-1/2 p-10 md:p-16 flex flex-col justify-center border-r border-gray-100 relative max-h-screen overflow-y-auto">
         <div className="interview-header">
           <div className="live-label flex items-center">
@@ -1327,11 +1489,11 @@ const Interview = () => {
           />
         </div>
 
-        <div className="max-w-xl mx-auto w-full mt-12 md:mt-0">
+        <div className="max-w-xl mx-auto w-full mt-12 md:mt-0 py-10">
           <p className="text-[#8338ec] text-xs font-bold tracking-[0.2em] mb-4 uppercase">
             Question {(currentQuestionIndex + 1).toString().padStart(2, "0")} of {questions.length}
           </p>
-          <h2 className="text-4xl md:text-5xl text-gray-900 leading-[1.3] font-[Georgia] tracking-tight">
+          <h2 className={`text-gray-900 leading-[1.3] font-[Georgia] tracking-tight ${currentQuestion.question.length > 100 ? 'text-2xl md:text-3xl' : 'text-4xl md:text-5xl'}`}>
             {currentQuestion.question}
           </h2>
         </div>
@@ -1421,6 +1583,16 @@ const Interview = () => {
                   className={`w-full h-40 p-4 border border-gray-300 rounded-2xl focus:ring-violet-500 shadow-sm ${isPaused ? 'opacity-50 cursor-not-allowed' : ''}`}
                   placeholder="Type your response..."
                 />
+                <div className="flex justify-between mt-2 px-1">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+                    Words: {answerText.trim() ? answerText.trim().split(/\s+/).length : 0} / 250
+                  </p>
+                  {answerText.trim().split(/\s+/).length > 250 && (
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                      Over limit
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -2,13 +2,8 @@ node_modules/
 .env
 dist/
 build/
-
-# Ignore all uploads
 backend/uploads/*
-
-# But keep the folder structure
 !backend/uploads/
 !backend/uploads/resumes/
-
-# Ignore everything inside resumes
 backend/uploads/resumes/*
+!backend/uploads/resumes/.gitkeep
