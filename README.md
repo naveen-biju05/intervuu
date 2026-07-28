@@ -8,6 +8,7 @@ Intervuu is an AI-powered mock interview platform that helps users prepare for t
 
 * 🤖 AI-generated interview questions based on job role and experience level
 * 📝 AI evaluation of user responses with detailed feedback
+* 📄 Resume upload and PDF text extraction
 * 📊 Interview performance report with strengths and areas for improvement
 * 📈 Analytics dashboard for interview insights
 * 👤 User authentication and secure login
@@ -36,10 +37,11 @@ Intervuu is an AI-powered mock interview platform that helps users prepare for t
 * JWT Authentication
 * Multer
 
-### AI
+### AI & Resume Processing
 
-* Google Generative Language API
-* Gemini Models
+- Google Generative Language API
+- Gemini Models
+- pdf-parse-fixed (PDF text extraction)
 
 
 
